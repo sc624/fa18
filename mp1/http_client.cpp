@@ -80,6 +80,8 @@ int main(int argc, char *argv[]){
 	int rv;
 	char s[INET6_ADDRSTRLEN];
 	string request = "";
+	string port = "80";
+
 
 	if (argc != 2) {
 	    fprintf(stderr,"usage: client hostname\n");
@@ -97,7 +99,8 @@ int main(int argc, char *argv[]){
     request.append("\r\n");
     cout << request << endl;
 
-	if ((rv = getaddrinfo(http_args.host.c_str(), http_args.port.c_str(), &hints, &servinfo)) != 0) {
+    rv = getaddrinfo(http_args.host.c_str(), http_args.port.c_str(), &hints, &servinfo);
+	if ( rv != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return 1;
 	}

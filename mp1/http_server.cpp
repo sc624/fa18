@@ -48,7 +48,7 @@ int sendall(int s, const char *buf, int *len)
     int n;
 
     struct timeval tv;
-    tv.tv_sec = 2;
+    tv.tv_sec = 3;
     tv.tv_usec = 500000;
     fd_set writefds;
 	FD_SET(s, &writefds);
@@ -114,7 +114,7 @@ string output(request_t request, string status_code, string file){
 
 
 
-int main(void)
+int main(int argc, char * argv[])
 {
 	int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
 	struct addrinfo hints, *servinfo, *p;
@@ -126,12 +126,21 @@ int main(void)
 	int rv, idx, idx_1, idx_2, idx_3, numbytes;
 	char buffer[TEN_KB];
 
+
+	if(argc != 2){
+		cout << "Port number # needed" << endl;
+		exit(1);
+	}
+	
+	char * PORT_num = argv[1];
+	cout << "server will use port #: " << PORT_num << endl;
+
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE; // use my IP
-
-	if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+	rv = getaddrinfo(NULL, PORT_num, &hints, &servinfo);
+	if ( rv != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return 1;
 	}
@@ -179,7 +188,7 @@ int main(void)
 		exit(1);
 	}
 
-	printf("server: waiting for connections...\n");
+	printf("server: waiting for connection\n");
 
 	while(1) {  // main accept() loop
 		sin_size = sizeof their_addr;
@@ -204,12 +213,15 @@ int main(void)
 			string arg_buffer = string(buffer);
 			request_t buddy;		
 			
-			//request type
+			//request file_type
 			buddy.first = arg_buffer.find(" ");
 		    if (buddy.first == -1){
 		        arg_buffer = "-1";
 		    }
 			buddy.type = arg_buffer.substr(0, buddy.first);
+			if (!(buddy.type == "GET" || buddy.type == "POST")){
+				buddy.type = "-1";
+			}
 			cout << "request type: " << buddy.type << endl;
 
 			//file name
@@ -225,7 +237,7 @@ int main(void)
 			//user
 			idx_2 = arg_buffer.find("User-Agent: ");
 			if (idx_2 == -1)
-				arg_buffer = "";
+				buddy.user_agent = "";
 			idx_1 = arg_buffer.find(" ", idx_2);
 			idx_3 = arg_buffer.find("\n", idx_1 + 1);
 			buddy.user_agent = arg_buffer.substr(idx_1 + 1, idx_3 - idx_1 - 1);
@@ -233,7 +245,7 @@ int main(void)
 			//host
 			idx_2 = arg_buffer.find("Host: ");
 			if (idx_2 == -1)
-				arg_buffer = "";
+				buddy.host = "";
 			idx_1 = arg_buffer.find(" ", idx_2);
 			idx_3 = arg_buffer.find(":", idx_1 + 1);
 			buddy.host = arg_buffer.substr(idx_1 + 1, idx_3 - idx_1 - 1);
@@ -241,7 +253,7 @@ int main(void)
 			//accept
 			idx_2 = arg_buffer.find("Accept: ");
 			if (idx_2 == -1)
-				arg_buffer = "";
+				buddy.accept = "";
 			idx_1 = arg_buffer.find(" ", idx_2);
 			idx_3 = arg_buffer.find("\n", idx_1 + 1);
 			buddy.accept = arg_buffer.substr(idx_1 + 1, idx_3 - idx_1 - 1);
@@ -249,7 +261,7 @@ int main(void)
 			//accept-encoding
 			idx_2 = arg_buffer.find("Accept-Encoding: ");
 			if (idx_2 == -1)
-				arg_buffer = "";
+				buddy.accept_encoding = "";
 			idx_1 = arg_buffer.find(" ", idx_2);
 			idx_3 = arg_buffer.find("\n", idx_1 + 1);
 			buddy.accept_encoding = arg_buffer.substr(idx_1 + 1, idx_3 - idx_1 - 1);
