@@ -19,7 +19,7 @@
 
 #define PORT "3490" // the port client will be connecting to 
 #define DEFAULT_PORT "80"
-#define TEN_MB 1000000 // max number of bytes we can get at once 
+#define TEN_MB 1048576 // max number of bytes we can get at once 
 using namespace std;
 
 

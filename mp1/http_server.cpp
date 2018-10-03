@@ -133,7 +133,7 @@ int main(int argc, char * argv[])
 	}
 	
 	char * PORT_num = argv[1];
-	cout << "server will use port #: " << PORT_num << endl;
+	cout << "port #: " << PORT_num << endl;
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
