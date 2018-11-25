@@ -321,7 +321,7 @@ int main(int argc, char** argv){
     }
 
     sort(dub_pair.begin(), dub_pair.end(), compare);
-    
+
     for(int i = 0; i < num_vertices; ++i){
         link.dijkstra(dub_pair[i].first);
     }
