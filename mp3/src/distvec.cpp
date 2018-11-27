@@ -17,10 +17,19 @@ int total_nodes, total_node_arrays;
 string topofile, messagefile, changesfile;
 vector<vector<int>> edgeCost;
 
-//basic element of our topological map
 struct DVmessage{
 	int source, destination, thru, cost;
 	vector<int> distance_vector;
+};
+
+struct forward_entry{
+	int destination, nexthop, pathcost;
+};
+
+struct message_from_file{
+	int source;
+	int destination;
+	string message;
 };
 
 struct Node{
@@ -32,31 +41,17 @@ struct Node{
 	vector<DVmessage> msgs;
 };
 
-//forwarding table format is destination, nexthop, pathcost ---> to be printed out
-struct forward_entry{
-	int destination, nexthop, pathcost;
-};
-
-
-//message to be parsed in and used
-struct message_from_file{
-	int source;
-	int destination;
-	string message;
-};
-
-
 
 ofstream outfile;
-map<int, Node*> topo_map, cnodes; //changed from unordered to make it easier to get correct output
+map<int, Node*> topo_map; //changed from unordered to make it easier to get correct output
 queue<message_from_file*> every_message;
-vector< vector<forward_entry> >  forward_table;
+vector<vector<forward_entry>>  forward_table;
 
 
 vector<Node> graph_nodes;
 vector<vector<DVmessage>> NodeMessages; //2d vector array holds messages from nodes in DV alrogrithm
 
-void Print_Forward_Table(int cnode){
+void print_table(int cnode){
 	Node cur = graph_nodes[cnode];
 	forward_table[cnode].resize(total_node_arrays);
 	for(int i = 1; i < total_node_arrays; i++){
@@ -84,8 +79,8 @@ void read_message(){
 	if (msgfile.is_open()){
 		while(getline(msgfile, line)){
 			int source, dest;
-			sscanf(line.c_str(), "%d %d %*s", &source, &dest);
 			message_from_file *msg = new message_from_file;
+			sscanf(line.c_str(), "%d %d %*s", &source, &dest);
 			msg->destination = dest;
 			msg->source = source;
 			message = line.substr(line.find(" ")); //want message to start after second space so do twice
@@ -287,9 +282,9 @@ void cost_table(int cnode){
 				graph_nodes[cnode].costTable[m][n] = graph_nodes[cnode].costTable[n][m];
 
 	if(flag == 1){
-		for(unordered_map<int, int>::iterator it2 = topo_map[cnode]->neighbors.begin(); it2 != topo_map[cnode]->neighbors.end(); it2++){
+		for(unordered_map<int, int>::iterator it_ = topo_map[cnode]->neighbors.begin(); it_ != topo_map[cnode]->neighbors.end(); it_++){
 			DVmessage message;
-			int dest = it2->first;
+			int dest = it_->first;
 			message.destination = dest;
 			message.source = cnode;
 			message.thru = cnode;
@@ -309,33 +304,31 @@ void update(){
 	string line, message;
 	while(changefile >> source >> dest >> cost){
 		change_time++;
-		//check for existing link b/w the nodes in file
 		if(topo_map[source]->neighbors.find(dest) !=  topo_map[source]->neighbors.end()){
 			//remove link if cost is -999
 			if(cost == -999){
-				topo_map[source]->neighbors.erase(dest); //no longer neighbors
 				topo_map[dest]->neighbors.erase(source);
-				edgeCost[source][dest] = INF;
+				topo_map[source]->neighbors.erase(dest); //no longer neighbors
 				edgeCost[dest][source] = INF;
+				edgeCost[source][dest] = INF;
 			}
 			//link costs can only be positive, never 0. -999 means remove link
 			else if(cost > 0){
 				//update path cost
-				topo_map[source]->neighbors[dest]  =  cost;
-				//have to do for destinations neighbor too
 				topo_map[dest]->neighbors[source]  =  cost;
-				edgeCost[source][dest] = cost;
+				topo_map[source]->neighbors[dest]  =  cost;
 				edgeCost[dest][source] = cost;
+				edgeCost[source][dest] = cost;
 			}
 		}
 		//no existing link exists, create one
 		else{
 			//if no link exists and cost value is 0 or -999 then ignore it
 			if(cost > 0){
-				topo_map[source]->neighbors[dest] = cost;
 				topo_map[dest]->neighbors[source] = cost;
-				edgeCost[source][dest] = cost;
+				topo_map[source]->neighbors[dest] = cost;
 				edgeCost[dest][source] = cost;
+				edgeCost[source][dest] = cost;
 			}
 		}
 
@@ -383,7 +376,7 @@ void update(){
 		}
 
 		for(int node = 1; node < total_node_arrays; node++){
-			Print_Forward_Table(node);
+			print_table(node);
 		}
 
 		read_message();
@@ -419,7 +412,7 @@ int main(int argc, char** argv){
 	}
 
 	for(int node = 1; node < total_node_arrays; node++){
-		Print_Forward_Table(node);
+		print_table(node);
 	}
 
 

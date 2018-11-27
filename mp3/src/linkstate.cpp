@@ -14,6 +14,11 @@ using namespace std;
 
 ofstream fout("output.txt");
 
+struct message{
+  int from, to;
+  string sentence;
+};
+
 struct three{
     int a, b, c;
     three(){}
@@ -22,11 +27,6 @@ struct three{
     	b = bb;
       a = aa;
     }
-};
-
-struct message{
-    int from, to;
-    string sentence;
 };
 
 class graph{
