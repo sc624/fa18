@@ -145,10 +145,10 @@ int main(int argc, char**argv){
       }
     }
 
-    fout << "channel utilization " << packetsent * L * 1.0 / T * 100 << endl;
-    fout << "channel idle fraction " << idletime * 1.0 / T * 100 << endl;
-    fout << "total collision " << totalCollision << endl;
-    fout << "variance of success transmission " << variance(success_num) << endl;
-    fout << "variance of collision " << variance(collision_num) << endl;
+    fout << "channel utilization: " << packetsent * L * 1.0 / T * 100 << "%" << endl;
+    fout << "channel idle fraction: " << idletime * 1.0 / T * 100 << "%" << endl;
+    fout << "total collisions: " << totalCollision << endl;
+    fout << "variance of successful transmission: " << variance(success_num) << endl;
+    fout << "variance of collisions: " << variance(collision_num) << endl;
     return 0;
 }
