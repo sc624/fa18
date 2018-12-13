@@ -1,0 +1,5 @@
+72.28%
+15.076%
+6317
+variance of success transmission 17.7054
+variance of collision 170.928
