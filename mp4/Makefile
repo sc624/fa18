@@ -1,13 +1,13 @@
 CPP = g++ -std=c++11
 COMPILERFLAGS = -g -Wall -Wextra -Wno-sign-compare
-CSMAOBJ = obj/csma.o
+CSMAOBJS = obj/csma.o
 LINKLIBS = -lpthread
 
 .PHONY: all clean
 
 all : obj csma
 
-csma: $(CSMAOBJ)
+csma: $(CSMAOBJS)
 	$(CPP) $(COMPILERFLAGS) $^ -o $@ $(LINKLIBS)
 
 

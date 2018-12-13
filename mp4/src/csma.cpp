@@ -10,45 +10,35 @@ class node{
 public:
     int maxbackoff, backoff, maxpacket, packetleft, numOfCollision;
     node(int s,int L){
-      maxbackoff = s;
       backoff = 0;
+      numOfCollision = 0;
+      maxbackoff = s;
       maxpacket = L;
       packetleft = L;
-      numOfCollision = 0;}
+    }
 };
 
-vector<int> hasSomeoneToSend(int start, vector<node*>& nodevec){
-    vector<int> ans;
-    for(int i = start + 1; i < nodevec.size() ; ++i){
-        if(nodevec[i]->backoff == 0)
-            ans.push_back(i);
-    }
-    return ans;
-}
-
-void collisionOfNode(int i, int M, const vector<int>& Rvec, vector<node*>& nodevec,vector<int>& collisionNum){
-    nodevec[i]->numOfCollision++;
-    collisionNum[i]++;
-    if(nodevec[i]->numOfCollision == M){ //drop the current packet if collision number = M
-        nodevec[i]->maxbackoff = Rvec[0];
-        nodevec[i]->backoff = rand() % (1 + nodevec[i]->maxbackoff);
-        nodevec[i]->numOfCollision = 0;
+void NodeCollision(int i, int M, const vector<int>& range_vec, vector<int>& collision_num, vector<node*>& node_v){
+    node_v[i]->numOfCollision++;
+    collision_num[i]++;
+    if(node_v[i]->numOfCollision == M){ //drop the current packet if collision number = M
+        node_v[i]->maxbackoff = range_vec[0];
+        node_v[i]->numOfCollision = 0;
+        node_v[i]->backoff = rand() % (1 + node_v[i]->maxbackoff);
     }
     else{
-        nodevec[i]->maxbackoff *= 2;
-        if(nodevec[i]->maxbackoff > Rvec.back())
-            nodevec[i]->maxbackoff = Rvec.back();
-        nodevec[i]->backoff = rand() % (1 + nodevec[i]->maxbackoff);
+        node_v[i]->maxbackoff *= 2;
+        if(node_v[i]->maxbackoff > range_vec.back())
+            node_v[i]->maxbackoff = range_vec.back();
+        node_v[i]->backoff = rand() % (1 + node_v[i]->maxbackoff);
     }
 }
-
 
 double variance(vector<int> resultSet){
     double sum = 0;
     for(int i = 0; i < resultSet.size(); ++i)
       sum += resultSet[i];
     double mean = sum / resultSet.size(); //mean
-
     double accum = 0.0;
     for(int i = 0; i < resultSet.size(); ++i) {
         accum += (resultSet[i] - mean) * (resultSet[i] - mean);
@@ -57,6 +47,14 @@ double variance(vector<int> resultSet){
     return stdev;
 }
 
+vector<int> transmit(int start, vector<node*>& node_v){
+  vector<int> ans;
+  for(int i = start + 1; i < node_v.size() ; ++i){
+    if(node_v[i]->backoff == 0)
+    ans.push_back(i);
+  }
+  return ans;
+}
 
 int main(int argc, char**argv){
   if(argc != 2){
@@ -68,82 +66,77 @@ int main(int argc, char**argv){
   ofstream fout("output.txt");
 
   srand(time(NULL));
-  int N, L, R, M, T;    //reading in all the needed variables
-  vector<int> Rvec;
+  int N, L, R, M, T;    //nodes, packet size, range, retransmission attempt, time
+  vector<int> range_vec;
   char ch;
   string str;
   bool channelOccupied = false;
-  int whoOccupied = 0, packetsent = 0, globalTime = 0;
+  int whoOccupied = 0, packetsent = 0, time = 0;
 
-  file >> ch >> N >> ch >> L >> ch; //N,L
-
-  while(file.get() != '\r'){
+  file >> ch >> N >> ch >> L >> ch; //read in values
+  while(file.get() != '\r'){      //vector of random vals
     file >> R;
-    Rvec.push_back(R);
+    range_vec.push_back(R);
   }
-
   file >> ch >> M >> ch >> T;
 
-  vector<int> successPacketNum(N,0), collisionNum(N,0);
-  int totalCollision = 0;
-  int idletime = 0;
+  vector<int> success_num(N, 0), collision_num(N, 0);
+  int totalCollision = 0, idletime = 0;
 
-  //organizing all the needed nodes for transmission
-
-  vector<node*> nodevec(N);
+  vector<node*> node_v(N);
   for(int i = 0; i < N; ++i){
-      nodevec[i] = new node(Rvec[0], L);
-  } //initialization of all nodes
+      node_v[i] = new node(range_vec[0], L);
+  } //initialize nodes
 
-  for(globalTime = 0; globalTime < T; ++globalTime){
-    vector<int> result = hasSomeoneToSend(-1, nodevec);
-    // int nums = result.size();
+  for(time = 0; time < T; ++time){
+    vector<int> result = transmit(-1, node_v);
     if(result.size() == 0)
         idletime++;
-    if(result.size() > 1 && channelOccupied == false){   //more than one want to occupy the empty channel
+    if(result.size() > 1 && channelOccupied == false){//if more than one want to occupy the empty channel
       totalCollision++;
       for(int i = 0; i < result.size(); ++i){
-        collisionOfNode(result[i], M, Rvec, nodevec, collisionNum);
+        NodeCollision(result[i], M, range_vec, collision_num, node_v);
       }
       continue;
     }
+
     for(int i = 0; i < N; ++i){  //every time check the 25 nodes
-        if(nodevec[i]->backoff != 0){
+        if(node_v[i]->backoff != 0){
           if(channelOccupied){
               continue;
           }
-          else if(hasSomeoneToSend(i,nodevec).size() == 0){
-              nodevec[i]->backoff--;
+          else if(transmit(i, node_v).size() == 0){
+              node_v[i]->backoff--;
               continue;
           }
           else{
               continue;
           }
         }
-        else{  //the current node's backoff > 0
-          if(!channelOccupied){   //if occupied happens
+        else{
+          if(!channelOccupied){   //if channel not occupied
             whoOccupied = i;
             channelOccupied = true;
-            nodevec[i]->packetleft--;
+            node_v[i]->packetleft--;
           }
           else{  //the channel is not yet occupied and only you want to transmit
             if(whoOccupied != i){   //occupied by itself
-              collisionOfNode(i, M, Rvec, nodevec, collisionNum);
+              NodeCollision(i, M, range_vec, collision_num, node_v);
               continue;
             }
             else{                     //occupied by others
-              if(nodevec[i]->packetleft != 1){ //in this slot it is all sent and re-initialize
-                nodevec[i]->packetleft--;
+              if(node_v[i]->packetleft != 1){ //sent and re-initialize
+                node_v[i]->packetleft--;
                 continue;
               }
               else{
+                success_num[i]++;
                 packetsent++;
-                successPacketNum[i]++;
+                node_v[i]->numOfCollision = 0;
                 channelOccupied = false;
-                nodevec[i]->numOfCollision = 0;
-                nodevec[i]->backoff = rand() % (1 + nodevec[i]->maxbackoff);
-                nodevec[i]->maxbackoff = Rvec[0];
-                nodevec[i]->packetleft = L;
+                node_v[i]->backoff = rand() % (1 + node_v[i]->maxbackoff);
+                node_v[i]->maxbackoff = range_vec[0];
+                node_v[i]->packetleft = L;
                 break;
               }
             }
@@ -152,11 +145,10 @@ int main(int argc, char**argv){
       }
     }
 
-
-    fout << /*"channel utilization " <<*/ packetsent * L * 1.0 / T * 100 << "%" << endl;
-    fout << /*"channel idle fraction " <<*/ idletime * 1.0 / T * 100 << "%" << endl;
-    fout << /*"total collision " <<*/ totalCollision << endl;
-    fout << "variance of success transmission " << variance(successPacketNum) << endl;
-    fout << "variance of collision " << variance(collisionNum) << endl;
+    fout << "channel utilization " << packetsent * L * 1.0 / T * 100 << endl;
+    fout << "channel idle fraction " << idletime * 1.0 / T * 100 << endl;
+    fout << "total collision " << totalCollision << endl;
+    fout << "variance of success transmission " << variance(success_num) << endl;
+    fout << "variance of collision " << variance(collision_num) << endl;
     return 0;
 }
